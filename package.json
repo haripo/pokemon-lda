@@ -1,0 +1,11 @@
+{
+  "name": "lda-pokemon",
+  "version": "1.0.0",
+  "description": "Pokemon analysis by LDA",
+  "main": "index.js",
+  "author": "haripo",
+  "license": "MIT",
+  "dependencies": {
+    "random-js": "^1.0.8"
+  }
+}

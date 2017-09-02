@@ -2,18 +2,25 @@ var fs = require("fs");
 var LDA = require('./lda');
 
 var data = require('./data.json');
+var pokemonNames = require('./pokemon_names.json');
+var moveNames = require('./moves.json');
 
 let corpus = new LDA.Corpus(data);
 let model = new LDA.Model(corpus, 50, 0.1, 0.02);
 
-model.fit(100);
+model.fit(1000);
 
 const topicProbs = corpus.getTopicProbs();
 const wordProbs = corpus.getWordProbs();
 
+console.log(topicProbs.length);
+console.log(wordProbs.length);
+console.log(pokemonNames.length);
+console.log(moveNames.length);
+
 i = 0;
 for (let probs of topicProbs) {
-  console.log(data[i].name + "\t" + JSON.stringify(probs));
+  console.log(i + "\t" + pokemonNames[i] + "\t" + JSON.stringify(probs));
   i++;
 }
 
@@ -23,7 +30,10 @@ for (let k = 0; k < 50; k++) {
   topicDoc[k] = [];
   let j = 0;
   for (let probs of topicProbs) {
-    topicDoc[k].push({ pokemon: j, probs: probs[k]});
+    topicDoc[k].push({
+      pokemon: pokemonNames[j],
+      probs: probs[k]
+    });
     j++;
   }
 }
@@ -33,8 +43,8 @@ for (let probs of wordProbs) {
   console.log("=== topic " + i)
   let j = 0;
   for (let move of probs) {
-    moveId = parseInt(move.word) - 1;
-    console.log(moves[moveId].name + "(" + moves[moveId].type + ")"　+ " : " + move.prob);
+    moveId = parseInt(move.word);
+    console.log(moveNames[moveId].name + "(" + /*moves[moveId].type + */")"　+ " : " + move.prob);
     j++;
     if (j > 10) break;
   }
@@ -51,7 +61,7 @@ for (let doc of topicDoc) {
     return b.probs - a.probs;
   });
   for (let j = 0; j < 10; j++) {
-    console.log(data[doc[j].pokemon].name+ "(" + data[doc[j].pokemon].type.join(',') + ")" + "\t" + doc[j].probs);
+    console.log(doc[j].pokemon + "("/* + data[doc[j].pokemon].type.join(',')*/ + ")" + "\t" + doc[j].probs);
   }
   i++;
 }

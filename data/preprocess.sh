@@ -5,7 +5,13 @@ q -H -d, '
   FROM raw/pokemon.csv AS p
     INNER JOIN raw/pokemon_moves.csv AS m
     ON p.id = m.pokemon_id
-  WHERE p.id < 10000' \
+  WHERE p.id < 10000
+    AND m.move_id IN (
+      SELECT move_id
+      FROM raw/pokemon_moves.csv
+      GROUP BY move_id
+      HAVING COUNT(DISTINCT pokemon_id) BETWEEN 2 AND 900
+    )' \
 | jq -s -R '
   split("\n")
   | map(split(",") | select(length > 1) | map(tonumber))
@@ -13,7 +19,9 @@ q -H -d, '
     "document": (.[0] - 1),
     "word": (.[1] - 1)
   })' \
-> corpus.json
+> corpus2.json
+
+exit
 
 echo 'moves.json'
 q -H -d, '

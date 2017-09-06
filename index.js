@@ -5,8 +5,9 @@ var data = require('./data.json');
 var pokemonNames = require('./pokemon_names.json');
 var moveNames = require('./moves.json');
 
+let topics = 50;
 let corpus = new LDA.Corpus(data);
-let model = new LDA.Model(corpus, 50, 0.1, 0.02);
+let model = new LDA.Model(corpus, topics, 0.01, 0.01);
 
 model.fit(1000);
 
@@ -26,7 +27,7 @@ for (let probs of topicProbs) {
 
 i = 0;
 let topicDoc = []
-for (let k = 0; k < 50; k++) {
+for (let k = 0; k < topics; k++) {
   topicDoc[k] = [];
   let j = 0;
   for (let probs of topicProbs) {

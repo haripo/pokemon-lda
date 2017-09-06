@@ -9,19 +9,24 @@ q -H -d, '
     AND m.move_id IN (
       SELECT move_id
       FROM raw/pokemon_moves.csv
+      WHERE pokemon_id < 10000
       GROUP BY move_id
-      HAVING COUNT(DISTINCT pokemon_id) BETWEEN 2 AND 900
+      HAVING COUNT(DISTINCT pokemon_id) BETWEEN 2 AND 400
+    )
+    AND p.id IN (
+      SELECT pokemon_id
+      FROM raw/pokemon_moves.csv
+      GROUP BY pokemon_id
+      HAVING COUNT(DISTINCT move_id) > 5
     )' \
 | jq -s -R '
   split("\n")
   | map(split(",") | select(length > 1) | map(tonumber))
   | map({
-    "document": (.[0] - 1),
-    "word": (.[1] - 1)
+    "document": .[0],
+    "word": .[1]
   })' \
-> corpus2.json
-
-exit
+> corpus.json
 
 echo 'moves.json'
 q -H -d, '
@@ -38,7 +43,7 @@ q -H -d, '
   split("\n")
   | map(split(",") | select(length > 1))
   | map({
-    "id": .[0] | tonumber,
+    "id": (.[0] | tonumber),
     "name": .[1],
     "type": .[2]
   })' \
@@ -70,5 +75,5 @@ q -H -d, '
     "id": .[0].id,
     "name": .[0].name,
     "type": map(.type)
-  })'　\
+  })' \
 > pokemons.json

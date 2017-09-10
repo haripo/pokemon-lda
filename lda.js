@@ -96,6 +96,52 @@ class Corpus {
     }
     return result2;
   }
+
+  getTopicCoherence() {
+    // convert corpus to document-words set
+    let words = [];
+    this.terms.forEach(term => {
+      if (!words[term.document]) {
+        words[term.document] = new Set();
+      }
+      words[term.document].add(term.word);
+    });
+
+    const numUseWords = 10;
+
+    let result = [];
+
+    const wordProbs = this.getWordProbs();
+    wordProbs.forEach((probs, k) => {
+
+      let topWords = []
+      probs.slice(0, numUseWords).forEach(term => {
+        topWords.push(parseInt(term.word));
+      });
+//      console.log(topWords);
+
+      let uMassScores = [];
+      for (let i = 0; i < topWords.length; i++) {
+        for (let j = i + 1; j < topWords.length; j++) {
+          let di = 0;
+          let dij = 0;
+          for (let d = 0; d < this.numDocument; d++) {
+            if (words[d].has(topWords[i])) {
+              di += 1;
+            }
+            if (words[d].has(topWords[i]) && words[d].has(topWords[j])) {
+              dij += 1;
+            }
+          }
+          uMassScores.push(Math.log((dij + 1) / di));
+        }
+      }
+
+      result[k] = uMassScores.sort().slice(5, -5).reduce((a, b) => a + b);
+    });
+
+    return result;
+  }
 }
 
 class Model {
@@ -128,7 +174,7 @@ class Model {
     this.initializeCounter();
     for (let i = 0; i < iteration; i++) {
       this.iterate();
-      console.log("perp:  " + this.calcPerplexity());
+      console.log("iteration: %d, perplexity: %d", i, this.calcPerplexity());
     }
   }
 

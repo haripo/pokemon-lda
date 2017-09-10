@@ -1,68 +1,96 @@
 var fs = require("fs");
 var LDA = require('./lda');
 
-var data = require('./data.json');
-var pokemonNames = require('./pokemon_names.json');
-var moveNames = require('./moves.json');
+var data = require('./data/corpus.json');
+var pokemons = require('./data/pokemons.json');
+var moves = require('./data/moves.json');
 
-let topics = 50;
+let wordIdMap = new Map();
+let wordIdRevMap = new Map();
+
+let documentIdMap = new Map();
+let documentIdRevMap = new Map();
+
+data.forEach(term => {
+  if (!wordIdMap.has(term.word)) {
+    const id = wordIdMap.size;
+    wordIdMap.set(term.word, id);
+    wordIdRevMap.set(id, term.word);
+  }
+  if (!documentIdMap.has(term.document)) {
+    const id = documentIdMap.size;
+    documentIdMap.set(term.document, id);
+    documentIdRevMap.set(id, term.document);
+  }
+});
+
+data = data.map(d => {
+  d.word = wordIdMap.get(d.word);
+  d.document = documentIdMap.get(d.document);
+  return d;
+})
+
+let topics = 25;
 let corpus = new LDA.Corpus(data);
-let model = new LDA.Model(corpus, topics, 0.01, 0.01);
+let model = new LDA.Model(corpus, topics, 0.05, 0.005);
 
-model.fit(1000);
+model.fit(2000);
 
 const topicProbs = corpus.getTopicProbs();
 const wordProbs = corpus.getWordProbs();
 
-console.log(topicProbs.length);
-console.log(wordProbs.length);
-console.log(pokemonNames.length);
-console.log(moveNames.length);
+topicProbs.forEach((probs, i) => {
+  console.log(i + "\t" + pokemons[i].name + "\t" + JSON.stringify(probs));
+});
 
-i = 0;
-for (let probs of topicProbs) {
-  console.log(i + "\t" + pokemonNames[i] + "\t" + JSON.stringify(probs));
-  i++;
-}
-
-i = 0;
 let topicDoc = []
 for (let k = 0; k < topics; k++) {
   topicDoc[k] = [];
-  let j = 0;
-  for (let probs of topicProbs) {
+  topicProbs.forEach((probs, j) => {
     topicDoc[k].push({
-      pokemon: pokemonNames[j],
+      pokemon: j,
       probs: probs[k]
     });
-    j++;
-  }
+  });
 }
 
-i = 0;
-for (let probs of wordProbs) {
-  console.log("=== topic " + i)
-  let j = 0;
-  for (let move of probs) {
-    moveId = parseInt(move.word);
-    console.log(moveNames[moveId].name + "(" + /*moves[moveId].type + */")"　+ " : " + move.prob);
-    j++;
-    if (j > 10) break;
-  }
-  i++;
-}
+const coherences = corpus.getTopicCoherence()
+  .map((coherence, topic) => { return { coherence, topic } });
 
+coherences.sort((a, b) => a.coherence - b.coherence);
 
-i = 0;
-for (let doc of topicDoc) {
-  console.log("--- topic " + i);
+coherences.forEach(coherence => {
+  const k = coherence.topic;
+  const probs = wordProbs[k];
+  const doc = topicDoc[k];
+
+  console.log("\n=== topic " + k)
+  console.log("coherence: " + coherence.coherence);
+  console.log("- top moves")
+  probs.slice(0, 10).forEach((move, j) => {
+    const moveId = wordIdRevMap.get(parseInt(move.word));
+    console.log([
+      moves[moveId - 1].name,
+      moves[moveId - 1].type,
+      move.prob.toFixed(4)
+    ].join('\t'));
+  });
+
+  console.log("- top pokemons")
   doc.sort((a, b) => {
     if (!a.probs) a.probs = 0;
     if (!b.probs) b.probs = 0;
     return b.probs - a.probs;
   });
+
   for (let j = 0; j < 10; j++) {
-    console.log(doc[j].pokemon + "("/* + data[doc[j].pokemon].type.join(',')*/ + ")" + "\t" + doc[j].probs);
+    const pokemonId = documentIdRevMap.get(doc[j].pokemon);
+    console.log([
+      pokemons[pokemonId - 1].name,
+      pokemons[pokemonId - 1].type.join(','),
+      doc[j].probs.toFixed(4)
+    ].join('\t'));
   }
-  i++;
-}
+});
+
+console.log(coherences);

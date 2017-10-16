@@ -75,7 +75,7 @@ coherences.forEach(coherence => {
       moves[moveId - 1].name,
       moves[moveId - 1].type,
       move.prob.toFixed(4)
-    ].join('\t'));
+    ].join(' & ') + " \\\\");
   });
 
   console.log("- top pokemons")
@@ -91,7 +91,7 @@ coherences.forEach(coherence => {
       pokemons[pokemonId - 1].name,
       pokemons[pokemonId - 1].type.join(','),
       doc[j].probs.toFixed(4)
-    ].join('\t'));
+    ].join(' & ') + " \\\\");
   }
 });
 

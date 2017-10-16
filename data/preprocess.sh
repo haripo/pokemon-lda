@@ -1,3 +1,13 @@
+POKEDEX_COMMIT=73f388e
+POKEDEX_BASE_PATH=https://raw.githubusercontent.com/veekun/pokedex/${POKEDEX_COMMIT}/pokedex/data/csv
+
+wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon_moves.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon_types.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon_species_names.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/moves.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/move_names.csv
+wget -P raw/ ${POKEDEX_BASE_PATH}/type_names.csv
 
 echo 'corpus.json'
 q -H -d, '

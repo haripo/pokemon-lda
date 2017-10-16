@@ -32,12 +32,14 @@ data = data.map(d => {
 
 let topics = 25;
 let corpus = new LDA.Corpus(data);
-let model = new LDA.Model(corpus, topics, 0.05, 0.005);
+let alpha = 0.05;
+let beta = 0.005;
+let model = new LDA.Model(corpus, topics, alpha, beta);
 
 model.fit(2000);
 
-const topicProbs = corpus.getTopicProbs();
-const wordProbs = corpus.getWordProbs();
+const topicProbs = corpus.getTopicProbs(alpha, topics);
+const wordProbs = corpus.getWordProbs(beta);
 
 topicProbs.forEach((probs, i) => {
   console.log(i + "\t" + pokemons[i].name + "\t" + JSON.stringify(probs));

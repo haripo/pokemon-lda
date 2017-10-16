@@ -1,9 +1,9 @@
-var fs = require("fs");
-var LDA = require('./lda');
+const fs = require('fs');
+const LDA = require('./lda');
 
-var data = require('./data/corpus.json');
-var pokemons = require('./data/pokemons.json');
-var moves = require('./data/moves.json');
+let data = require('./data/corpus.json');
+const pokemons = require('./data/pokemons.json');
+const moves = require('./data/moves.json');
 
 let wordIdMap = new Map();
 let wordIdRevMap = new Map();
@@ -30,10 +30,11 @@ data = data.map(d => {
   return d;
 })
 
-let topics = 25;
+const topics = 25;
+const alpha = 0.05;
+const beta = 0.005;
+
 let corpus = new LDA.Corpus(data);
-let alpha = 0.05;
-let beta = 0.005;
 let model = new LDA.Model(corpus, topics, alpha, beta);
 
 model.fit(2000);
@@ -41,58 +42,53 @@ model.fit(2000);
 const topicProbs = corpus.getTopicProbs(alpha, topics);
 const wordProbs = corpus.getWordProbs(beta);
 
-topicProbs.forEach((probs, i) => {
-  console.log(i + "\t" + pokemons[i].name + "\t" + JSON.stringify(probs));
-});
-
-let topicDoc = []
-for (let k = 0; k < topics; k++) {
-  topicDoc[k] = [];
-  topicProbs.forEach((probs, j) => {
-    topicDoc[k].push({
-      pokemon: j,
-      probs: probs[k]
-    });
-  });
-}
-
-const coherences = corpus.getTopicCoherence()
-  .map((coherence, topic) => { return { coherence, topic } });
-
-coherences.sort((a, b) => a.coherence - b.coherence);
-
-coherences.forEach(coherence => {
-  const k = coherence.topic;
-  const probs = wordProbs[k];
-  const doc = topicDoc[k];
-
-  console.log("\n=== topic " + k)
-  console.log("coherence: " + coherence.coherence);
-  console.log("- top moves")
-  probs.slice(0, 10).forEach((move, j) => {
-    const moveId = wordIdRevMap.get(parseInt(move.word));
-    console.log([
-      moves[moveId - 1].name,
-      moves[moveId - 1].type,
-      move.prob.toFixed(4)
-    ].join(' & ') + " \\\\");
-  });
-
-  console.log("- top pokemons")
-  doc.sort((a, b) => {
-    if (!a.probs) a.probs = 0;
-    if (!b.probs) b.probs = 0;
-    return b.probs - a.probs;
-  });
-
-  for (let j = 0; j < 10; j++) {
-    const pokemonId = documentIdRevMap.get(doc[j].pokemon);
-    console.log([
-      pokemons[pokemonId - 1].name,
-      pokemons[pokemonId - 1].type.join(','),
-      doc[j].probs.toFixed(4)
-    ].join(' & ') + " \\\\");
+let pokemonTopics = topicProbs.map((probs, index) => {
+  return {
+    id: pokemons[index].id,
+    pokemon: pokemons[index].name,
+    probs: probs
   }
 });
 
-console.log(coherences);
+
+let topicPokemons = []
+for (let k = 0; k < topics; k++) {
+  topicPokemons[k] = topicProbs
+    .map((probs, pokemon) => {
+      return { prob: (probs[k] || 0), pokemon }
+    })
+    .sort((a, b) => b.prob - a.prob)
+    .slice(0, 10)
+    .map(item => {
+      const id = documentIdRevMap.get(item.pokemon);
+      return {
+        name: pokemons[id - 1].name,
+        type: pokemons[id - 1].type.join(','),
+        prob: item.prob.toFixed(4)
+      }
+    });
+}
+
+let topicMoves = []
+for (let k = 0; k < topics; k++) {
+  console.log(wordProbs)
+  topicMoves[k] = wordProbs[k]
+    .map(pair => {
+      return { prob: pair.prob, move: parseInt(pair.word) }
+    })
+    .sort((a, b) => b.prob - a.prob)
+    .slice(0, 10)
+    .map(item => {
+      console.log(item)
+      const id = wordIdRevMap.get(item.move);
+      return {
+        name: moves[id - 1].name,
+        type: moves[id - 1].type,
+        prob: item.prob.toFixed(4)
+      }
+    });
+}
+
+fs.writeFileSync("pokemon_topics.json", JSON.stringify(pokemonTopics, null, 2));
+fs.writeFileSync("topic_pokemons.json", JSON.stringify(topicPokemons, null, 2));
+fs.writeFileSync("topic_moves.json", JSON.stringify(topicMoves, null, 2));

@@ -49,7 +49,7 @@ class Corpus {
     let result = [];
     for (let term of this.terms) {
       if (!result[term.document]) {
-        result[term.document] = {}
+        result[term.document] = [];
       }
       if (!result[term.document][term.topic]) {
         result[term.document][term.topic] = 0
@@ -64,7 +64,6 @@ class Corpus {
       }
       for (let k in result[i]) {
         result[i][k] = (result[i][k] + alpha) / (sum + alpha * numTopic);
-        //result[i][k] = (result[i][k]) / (sum);
       }
     }
     return result;
@@ -74,7 +73,7 @@ class Corpus {
     let result = [];
     for (let term of this.terms) {
       if (!result[term.topic]) {
-        result[term.topic] = {}
+        result[term.topic] = []
       }
       if (!result[term.topic][term.word]) {
         result[term.topic][term.word] = 0

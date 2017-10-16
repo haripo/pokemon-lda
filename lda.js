@@ -45,7 +45,7 @@ class Corpus {
     this.terms.forEach((t) => t.topic = Random.integer(0, numTopic - 1)(this.random));
   }
 
-  getTopicProbs() {
+  getTopicProbs(alpha, numTopic) {
     let result = [];
     for (let term of this.terms) {
       if (!result[term.document]) {
@@ -63,13 +63,14 @@ class Corpus {
         sum += result[i][k];
       }
       for (let k in result[i]) {
-        result[i][k] /= sum;
+        result[i][k] = (result[i][k] + alpha) / (sum + alpha * numTopic);
+        //result[i][k] = (result[i][k]) / (sum);
       }
     }
     return result;
   }
 
-  getWordProbs() {
+  getWordProbs(beta) {
     let result = [];
     for (let term of this.terms) {
       if (!result[term.topic]) {
@@ -89,8 +90,7 @@ class Corpus {
         sum += result[i][k];
       }
       for (let k in result[i]) {
-        result[i][k] /= sum;
-        result2[i].push({ word: k, prob: result[i][k] });
+        result2[i].push({ word: k, prob: (result[i][k] + beta) / (sum + beta * this.numVocabulary) });
       }
       result2[i].sort((a, b) => b.prob - a.prob)
     }

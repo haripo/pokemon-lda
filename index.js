@@ -5,31 +5,6 @@ let data = require('./data/corpus.json');
 const pokemons = require('./data/pokemons.json');
 const moves = require('./data/moves.json');
 
-let wordIdMap = new Map();
-let wordIdRevMap = new Map();
-
-let documentIdMap = new Map();
-let documentIdRevMap = new Map();
-
-data.forEach(term => {
-  if (!wordIdMap.has(term.word)) {
-    const id = wordIdMap.size;
-    wordIdMap.set(term.word, id);
-    wordIdRevMap.set(id, term.word);
-  }
-  if (!documentIdMap.has(term.document)) {
-    const id = documentIdMap.size;
-    documentIdMap.set(term.document, id);
-    documentIdRevMap.set(id, term.document);
-  }
-});
-
-data = data.map(d => {
-  d.word = wordIdMap.get(d.word);
-  d.document = documentIdMap.get(d.document);
-  return d;
-})
-
 const topics = 25;
 const alpha = 0.05;
 const beta = 0.005;
@@ -51,7 +26,6 @@ let pokemonTopics = topicProbs.map((probs, index) => {
   }
 });
 
-
 let topicPokemons = []
 for (let k = 0; k < topics; k++) {
   topicPokemons[k] = topicProbs
@@ -61,10 +35,10 @@ for (let k = 0; k < topics; k++) {
     .sort((a, b) => b.prob - a.prob)
     .slice(0, 10)
     .map(item => {
-      const id = documentIdRevMap.get(item.pokemon);
+      const index = corpus.idToDocument(item.pokemon) - 1;
       return {
-        name: pokemons[id - 1].name,
-        type: pokemons[id - 1].type.join(','),
+        name: pokemons[index].name,
+        type: pokemons[index].type.join(','),
         prob: item.prob.toFixed(4)
       }
     });
@@ -79,10 +53,10 @@ for (let k = 0; k < topics; k++) {
     .sort((a, b) => b.prob - a.prob)
     .slice(0, 10)
     .map(item => {
-      const id = wordIdRevMap.get(item.move);
+      const index = corpus.idToWord(item.move) - 1;
       return {
-        name: moves[id - 1].name,
-        type: moves[id - 1].type,
+        name: moves[index].name,
+        type: moves[index].type,
         prob: item.prob.toFixed(4)
       }
     });

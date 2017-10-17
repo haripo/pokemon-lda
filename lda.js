@@ -26,17 +26,50 @@ class Matrix {
 
 class Corpus {
   constructor(terms) {
-    this.terms = terms;
+    this.wordIdMap = new Map();
+    this.wordIdRevMap = new Map();
+    this.documentIdMap = new Map();
+    this.documentIdRevMap = new Map();
+
+    this.terms = this.convert(terms);
 
     this.numVocabulary = 0;
     this.numDocument = 0;
-
     this.terms.forEach((t) => {
       t.topic = 0;
       if (t.word >= this.numVocabulary) this.numVocabulary = t.word + 1;
       if (t.document >= this.numDocument) this.numDocument = t.document + 1;
     });
   }
+
+  convert(terms) {
+    return terms.map(d => {
+      d.word = this.wordToId(d.word);
+      d.document = this.documentToId(d.document);
+      return d;
+    })
+  }
+
+  wordToId(word) {
+    if (!this.wordIdMap.has(word)) {
+      const id = this.wordIdMap.size;
+      this.wordIdMap.set(word, id);
+      this.wordIdRevMap.set(id, word);
+    }
+    return this.wordIdMap.get(word);
+  }
+
+  documentToId(document) {
+    if (!this.documentIdMap.has(document)) {
+      const id = this.documentIdMap.size;
+      this.documentIdMap.set(document, id);
+      this.documentIdRevMap.set(id, document);
+    }
+    return this.documentIdMap.get(document);
+  }
+
+  idToWord(id) { return this.wordIdRevMap.get(id); }
+  idToDocument(id) { return this.documentIdRevMap.get(id); }
 }
 
 class Model {

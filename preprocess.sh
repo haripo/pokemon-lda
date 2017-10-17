@@ -1,6 +1,9 @@
 POKEDEX_COMMIT=73f388e
 POKEDEX_BASE_PATH=https://raw.githubusercontent.com/veekun/pokedex/${POKEDEX_COMMIT}/pokedex/data/csv
 
+mkdir -p data/raw
+cd data
+
 wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon.csv
 wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon_moves.csv
 wget -P raw/ ${POKEDEX_BASE_PATH}/pokemon_types.csv

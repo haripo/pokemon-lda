@@ -35,12 +35,13 @@ const alpha = 0.05;
 const beta = 0.005;
 
 let corpus = new LDA.Corpus(data);
-let model = new LDA.Model(corpus, topics, alpha, beta);
+let model = new LDA.Model(corpus, topics, alpha, beta)
+let estimator = new LDA.GibbsSamplingEstimator(corpus, model);
 
-model.fit(2000);
+estimator.fit(2000);
 
-const topicProbs = corpus.getTopicProbs(alpha, topics);
-const wordProbs = corpus.getWordProbs(beta);
+const topicProbs = model.getTopicProbs(alpha, topics);
+const wordProbs = model.getWordProbs(beta);
 
 let pokemonTopics = topicProbs.map((probs, index) => {
   return {
@@ -71,7 +72,6 @@ for (let k = 0; k < topics; k++) {
 
 let topicMoves = []
 for (let k = 0; k < topics; k++) {
-  console.log(wordProbs)
   topicMoves[k] = wordProbs[k]
     .map(pair => {
       return { prob: pair.prob, move: parseInt(pair.word) }
@@ -79,7 +79,6 @@ for (let k = 0; k < topics; k++) {
     .sort((a, b) => b.prob - a.prob)
     .slice(0, 10)
     .map(item => {
-      console.log(item)
       const id = wordIdRevMap.get(item.move);
       return {
         name: moves[id - 1].name,

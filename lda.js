@@ -28,9 +28,6 @@ class Corpus {
   constructor(terms) {
     this.terms = terms;
 
-    this.random = Random.engines.mt19937();
-    this.random.seed(1);
-
     this.numVocabulary = 0;
     this.numDocument = 0;
 
@@ -40,14 +37,19 @@ class Corpus {
       if (t.document >= this.numDocument) this.numDocument = t.document + 1;
     });
   }
+}
 
-  randomizeTopic(numTopic) {
-    this.terms.forEach((t) => t.topic = Random.integer(0, numTopic - 1)(this.random));
+class Model {
+  constructor(corpus, numTopic, alpha, beta) {
+    this.numTopic = numTopic;
+    this.alpha = alpha;
+    this.beta = beta;
+    this.corpus = corpus;
   }
 
-  getTopicProbs(alpha, numTopic) {
+  getTopicProbs() {
     let result = [];
-    for (let term of this.terms) {
+    for (let term of this.corpus.terms) {
       if (!result[term.document]) {
         result[term.document] = [];
       }
@@ -57,106 +59,69 @@ class Corpus {
       result[term.document][term.topic] += 1
     }
 
-    for (let i = 0; i < this.numDocument; i++) {
+    for (let i = 0; i < this.corpus.numDocument; i++) {
       let sum = 0;
       for (let k in result[i]) {
         sum += result[i][k];
       }
       for (let k in result[i]) {
-        result[i][k] = (result[i][k] + alpha) / (sum + alpha * numTopic);
+        result[i][k] = (result[i][k] + this.alpha) / (sum + this.alpha * this.numTopic);
       }
     }
     return result;
   }
 
-  getWordProbs(beta) {
-    let result = [];
-    for (let term of this.terms) {
-      if (!result[term.topic]) {
-        result[term.topic] = []
+  getWordProbs() {
+    let topicWordCount = [];
+    for (let term of this.corpus.terms) {
+      if (!topicWordCount[term.topic]) {
+        topicWordCount[term.topic] = []
       }
-      if (!result[term.topic][term.word]) {
-        result[term.topic][term.word] = 0
+      if (!topicWordCount[term.topic][term.word]) {
+        topicWordCount[term.topic][term.word] = 0
       }
-      result[term.topic][term.word] += 1
+      topicWordCount[term.topic][term.word] += 1
     }
 
-    let result2 = [];
-    for (let i = 0; i < result.length; i++) {
-      result2[i] = [];
+    let result = [];
+    for (let i = 0; i < topicWordCount.length; i++) {
+      result[i] = [];
       let sum = 0;
-      for (let k in result[i]) {
-        sum += result[i][k];
+      for (let k in topicWordCount[i]) {
+        sum += topicWordCount[i][k];
       }
-      for (let k in result[i]) {
-        result2[i].push({ word: k, prob: (result[i][k] + beta) / (sum + beta * this.numVocabulary) });
+      for (let k in topicWordCount[i]) {
+        result[i].push({
+          word: k,
+          prob: (topicWordCount[i][k] + this.beta)
+            / (sum + this.beta * this.corpus.numVocabulary)
+        });
       }
-      result2[i].sort((a, b) => b.prob - a.prob)
+      result[i].sort((a, b) => b.prob - a.prob)
     }
-    return result2;
-  }
-
-  getTopicCoherence() {
-    // convert corpus to document-words set
-    let words = [];
-    this.terms.forEach(term => {
-      if (!words[term.document]) {
-        words[term.document] = new Set();
-      }
-      words[term.document].add(term.word);
-    });
-
-    const numUseWords = 10;
-
-    let result = [];
-
-    const wordProbs = this.getWordProbs();
-    wordProbs.forEach((probs, k) => {
-
-      let topWords = []
-      probs.slice(0, numUseWords).forEach(term => {
-        topWords.push(parseInt(term.word));
-      });
-//      console.log(topWords);
-
-      let uMassScores = [];
-      for (let i = 0; i < topWords.length; i++) {
-        for (let j = i + 1; j < topWords.length; j++) {
-          let di = 0;
-          let dij = 0;
-          for (let d = 0; d < this.numDocument; d++) {
-            if (words[d].has(topWords[i])) {
-              di += 1;
-            }
-            if (words[d].has(topWords[i]) && words[d].has(topWords[j])) {
-              dij += 1;
-            }
-          }
-          uMassScores.push(Math.log((dij + 1) / di));
-        }
-      }
-
-      result[k] = uMassScores.sort().slice(5, -5).reduce((a, b) => a + b);
-    });
-
     return result;
   }
 }
 
-class Model {
-  constructor(corpus, numTopic, alpha, beta) {
+class GibbsSamplingEstimator {
+  constructor(corpus, model) {
     this.random = Random.engines.mt19937();
     this.random.seed(1);
-    this.corpus = corpus;
-    this.numTopic = numTopic;
 
-    this.alpha = alpha;
-    this.beta = beta;
+    this.corpus = corpus;
+    this.terms = corpus.terms;
+    this.numTopic = model.numTopic;
+    this.alpha = model.alpha;
+    this.beta = model.beta;
 
     this.num_vk = new Matrix(this.corpus.numVocabulary, this.numTopic);
     this.num_k = new Matrix(this.numTopic, 1);
     this.num_dk = new Matrix(this.corpus.numDocument, this.numTopic);
     this.num_d = new Matrix(this.corpus.numDocument, 1);
+  }
+
+  randomizeTopic(numTopic) {
+    this.terms.forEach((t) => t.topic = Random.integer(0, numTopic - 1)(this.random));
   }
 
   initializeCounter() {
@@ -169,7 +134,7 @@ class Model {
   }
 
   fit(iteration) {
-    this.corpus.randomizeTopic(this.numTopic);
+    this.randomizeTopic(this.numTopic);
     this.initializeCounter();
     for (let i = 0; i < iteration; i++) {
       this.iterate();
@@ -237,6 +202,5 @@ class Model {
 }
 
 module.exports = {
-  Model: Model,
-  Corpus: Corpus,
+  Model, Corpus, GibbsSamplingEstimator
 };
